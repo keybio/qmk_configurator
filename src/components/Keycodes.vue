@@ -215,8 +215,8 @@ export default {
 }
 .keycode.isoenter {
   position: absolute;
-  left: 520px;
-  top: 117px;
+  left: 730px;
+  top: 137px;
   height: 69px;
 }
 .desaturated {
