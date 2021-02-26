@@ -2,9 +2,9 @@
   <div id="app" @click="dismiss">
     <span style="display:none">{{ revision }}</span>
     <div>
-      <header>
+      <!-- <header>
         <p class="random-potato">{{ potatoFact }}</p>
-      </header>
+      </header> -->
       <router-view />
       <spinner :isVisible="showSpinner" :status="spinnerMsg" />
       <InfoBar :msg="message" />
@@ -15,7 +15,10 @@
       <p>{{ $t('hostedOn') }}</p>
       <p style="font-size:10px">version: {{ revision }}</p> -->
     </footer>
-    <div
+    <div class="submit" @click="submit">
+      <button>Submit Config</button>
+    </div>
+    <!-- <div
       class="help"
       :class="helpClasses"
       @click="toggleTutorial"
@@ -53,7 +56,7 @@
         v-show="snowflakes && tutorialEnabled"
         alt="Jingle Bell SVG Icon made from Icon Fonts is licensed by CC BY 3.0"
       />
-    </div>
+    </div> -->
     <iframe
       v-if="tutorialEnabled"
       class="embedded-tutorial"
@@ -124,6 +127,7 @@ export default {
   },
   computed: {
     ...mapGetters('keymap', ['isDirty']),
+    ...mapState('keymap', ['templates']),
     ...mapState([
       'showSpinner',
       'spinnerMsg',
@@ -194,6 +198,21 @@ export default {
     },
     showSettings() {
       this.setSettingsPanel(true);
+    },
+    submit() {
+      const state = this.$store.state.app;
+
+      const data = {
+        keyboard: state.keyboard,
+        keymap: this.$store.getters['app/exportKeymapName'],
+        layout: state.layout,
+        layers: this.$store.getters['keymap/exportLayers'](true),
+        author: state.author,
+        notes: state.notes
+      };
+
+      //const event = new CustomEvent('submit-config', { detail: data }, '*');
+      window.top.postMessage(data, '*');
     }
   }
 };
@@ -224,6 +243,28 @@ export default {
   right: 10px;
   opacity: 0.7;
   cursor: pointer;
+}
+
+.submit {
+  position: fixed;
+  top: 50px;
+  right: 50px;
+  opacity: 0.7;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  > button {
+    cursor: pointer;
+    padding: 8px 32px;
+    background: $qmk-primary;
+    border: none;
+    outline: none;
+    color: white;
+    border-radius: 5px;
+  }
 }
 
 .santa-hat {

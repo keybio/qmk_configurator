@@ -121,7 +121,10 @@ export default {
       return this.$t(`print.${postfix}`);
     },
     gohome() {
-      this.$router.push(`/${this.keyboard}/${this.layout}`);
+      this.$router.push({
+        path: `/${this.keyboard}/${this.layout}`,
+        query: this.$route.query
+      });
     },
     toggleDate() {
       this.dateToggle = !this.dateToggle;

@@ -44,6 +44,9 @@ const mutations = {
     state.keyboards = _keyboards;
     state._keyboards = _keyboards; // make a 2nd copy
   },
+  setUsers(state, _users) {
+    state.users = _users;
+  },
   setLayout(state, _layout) {
     state.layout = _layout;
   },

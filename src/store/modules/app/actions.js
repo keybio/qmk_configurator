@@ -7,6 +7,15 @@ import { localStorageSet, CONSTS } from '@/store/localStorage';
 const steno_keyboards = ['gergo', 'georgi'];
 
 const actions = {
+  async fetchUsers({ commit }) {
+    const r = await axios.get(`${process.env.KEYBIO_API_URL}/qmkconfig/users`);
+    if (r.status === 200) {
+      commit('setUsers', r.data);
+      return r.data;
+    }
+    return [];
+  },
+
   /**
    * fetchKeyboards - fetch keyboard list from API
    */
@@ -163,6 +172,7 @@ const actions = {
   },
   async loadApplicationState({ commit, dispatch }) {
     console.log('loadApplicationState Start');
+    await dispatch('fetchUsers');
     await dispatch('fetchKeyboards');
     await dispatch('loadFavoriteKeyboard');
     await dispatch('toggleDarkMode', true);

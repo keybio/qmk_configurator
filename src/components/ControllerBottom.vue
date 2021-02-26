@@ -365,7 +365,8 @@ export default {
         // todo validate these values
         this.$router
           .replace({
-            path: `/${data.keyboard}/${data.layout}`
+            path: `/${data.keyboard}/${data.layout}`,
+            query: this.$route.query
           })
           .catch(err => {
             if (err.name !== 'NavigationDuplicated') {

@@ -1,7 +1,7 @@
 <template>
   <div id="controller-top">
     <div class="topctrl">
-      <div class="topctrl-keyboards">
+      <div class="topctrl-keyboards" v-if="!isUserBuilds">
         <a
           id="favorite-keyboard"
           v-tooltip="$t('favoriteKeyboard')"
@@ -25,7 +25,31 @@
           ref="select"
         ></v-select>
       </div>
-      <div class="topctrl-layouts">
+
+      <div class="topctrl-keyboards" v-if="isUserBuilds">
+        <a
+          id="favorite-keyboard"
+          v-tooltip="$t('favoriteKeyboard')"
+          @click="favKeyboard"
+          :class="{
+            active: isFavoriteKeyboard
+          }"
+        >
+          <font-awesome-icon icon="star" size="lg" fixed-width />
+        </a>
+        <label class="drop-label" id="drop-label-keyboard">User:</label>
+        <v-select
+          @search:focus="opened"
+          @search:blur="blur"
+          maxHeight="600px"
+          v-model="userName"
+          :clearable="false"
+          :options="userNames"
+          ref="select"
+        ></v-select>
+      </div>
+
+      <div class="topctrl-layouts" v-if="!isUserBuilds">
         <label class="drop-label" id="drop-label-version"
           >{{ $t('layout.label') }}:</label
         >
@@ -38,6 +62,19 @@
           >
         </select>
       </div>
+
+      <div class="topctrl-layouts" v-if="isUserBuilds">
+        <label class="drop-label" id="drop-label-version">Build:</label>
+        <select id="layout" v-model="build">
+          <option
+            v-for="build in builds"
+            :key="build.name"
+            v-bind:value="build.name"
+            >{{ build.name }}</option
+          >
+        </select>
+      </div>
+
       <div class="topctrl-keymap-name">
         <label
           class="drop-label"
@@ -84,7 +121,7 @@ import first from 'lodash/first';
 import random from 'lodash/random';
 import isUndefined from 'lodash/isUndefined';
 import isString from 'lodash/isString';
-
+import axios from 'axios';
 import { PREVIEW_LABEL } from '@/store/modules/constants';
 
 import {
@@ -107,13 +144,18 @@ export default {
       'layouts',
       'layout',
       'configuratorSettings',
-      'compileDisabled'
+      'compileDisabled',
+      'users',
+      'user'
     ]),
     isFavoriteKeyboard() {
       return this.keyboard === this.configuratorSettings.favoriteKeyboard;
     },
     realKeymapName() {
       return this.$store.getters['app/keymapName'];
+    },
+    userNames() {
+      return this.users.map(user => user.username);
     },
     keyboard: {
       get() {
@@ -160,6 +202,10 @@ export default {
         classes.push('half-size');
       }
       return classes.join(' ');
+    },
+    isUserBuilds() {
+      console.log(this.$router);
+      return this.$route.query?.users;
     }
   },
   watch: {
@@ -183,6 +229,25 @@ export default {
         this.keymapName = newName;
       }
     },
+    userName: async function(newName, oldName) {
+      const user = this.users.find(user => user.username === newName);
+
+      const res = await axios.get(
+        `${process.env.KEYBIO_API_URL}/qmkconfig?author=${user._id}`
+      );
+
+      this.builds = res.data;
+      this.build = this.builds[0].name;
+    },
+    build: async function(newBuild, oldBuild) {
+      const build = this.builds.find(build => build.name === newBuild);
+
+      await this.updateKeyboard(build.keyboard);
+
+      this.setLayout(build.layout);
+      load_converted_keymap([...build.layers]);
+      //this.setLayers(this.state, build.layers);
+    },
     $route: function(to /*, from*/) {
       if (to.query) {
         const filter = to.query.filter;
@@ -204,7 +269,7 @@ export default {
     }
   },
   methods: {
-    ...mapMutations('keymap', ['resizeConfig', 'clear']),
+    ...mapMutations('keymap', ['resizeConfig', 'clear', 'setLayers']),
     ...mapMutations('app', [
       'setLayout',
       'stopListening',
@@ -216,6 +281,7 @@ export default {
     ...mapActions('app', [
       'changeKeyboard',
       'fetchKeyboards',
+      'fetchUsers',
       'loadDefaultKeymap',
       'setFavoriteKeyboard'
     ]),
@@ -244,12 +310,13 @@ export default {
               // clear the keymap name for the default keymap
               // otherwise it overrides the default getter
               this.updateKeymapName('');
+              console.log({ layers: data.layers });
               const stats = load_converted_keymap(data.layers);
-              const msg = this.$t('statsTemplate', stats);
-              store.commit('status/append', msg);
-              if (!isAutoInit) {
-                store.commit('keymap/setDirty');
-              }
+              // const msg = this.$t('statsTemplate', stats);
+              // store.commit('status/append', msg);
+              // if (!isAutoInit) {
+              //   store.commit('keymap/setDirty');
+              // }
             });
             return promise;
           }
@@ -269,6 +336,9 @@ export default {
      * @param {object} the API Response
      * @returns {undefined}
      */
+    initializeUser() {
+      this.userName = this.userNames[0];
+    },
     initializeKeyboards() {
       console.info(`initializeKeyboards: ${this.keyboard}`);
       let _keyboard = '';
@@ -333,7 +403,8 @@ export default {
       this.$store.commit('status/clear');
       this.$router
         .replace({
-          path: `/${this.keyboard}/${this.layout}`
+          path: `/${this.keyboard}/${this.layout}`,
+          query: this.$route.query
         })
         .catch(err => {
           if (err.name !== 'NavigationDuplicated') {
@@ -353,7 +424,10 @@ export default {
       const newLayout = e.target ? e.target.value : e;
       this.setLayout(newLayout);
       this.$router
-        .replace({ path: `/${this.keyboard}/${this.layout}` })
+        .replace({
+          path: `/${this.keyboard}/${this.layout}`,
+          query: this.$route.query
+        })
         .catch(err => {
           if (err.name !== 'NavigationDuplicated') {
             throw err;
@@ -403,10 +477,15 @@ export default {
   data: () => {
     return {
       keymapName: '',
-      firstRun: true
+      firstRun: true,
+      userName: '',
+      builds: [],
+      build: ''
     };
   },
   mounted() {
+    this.initializeUser();
+
     this.initializeKeyboards().then(() => {
       this.loadDefault(true);
       this.initTemplates();

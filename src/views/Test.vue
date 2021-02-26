@@ -25,7 +25,10 @@ export default {
   methods: {
     ...mapMutations('tester', ['reset']),
     gohome() {
-      this.$router.push(`/${this.keyboard}/${this.layout}`);
+      this.$router.push({
+        path: `/${this.keyboard}/${this.layout}`,
+        query: this.$route.query
+      });
     }
   }
 };
