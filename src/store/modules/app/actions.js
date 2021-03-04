@@ -8,7 +8,9 @@ const steno_keyboards = ['gergo', 'georgi'];
 
 const actions = {
   async fetchUsers({ commit }) {
-    const r = await axios.get(`${process.env.KEYBIO_API_URL}/qmkconfig/users`);
+    const r = await axios.get(
+      `${process.env.VUE_APP_KEYBIO_API_URL}/qmkconfig/users`
+    );
     if (r.status === 200) {
       commit('setUsers', r.data);
       return r.data;

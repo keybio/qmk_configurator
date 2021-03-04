@@ -233,7 +233,7 @@ export default {
       const user = this.users.find(user => user.username === newName);
 
       const res = await axios.get(
-        `${process.env.KEYBIO_API_URL}/qmkconfig?author=${user._id}`
+        `${process.env.VUE_APP_KEYBIO_API_URL}/qmkconfig?author=${user._id}`
       );
 
       this.builds = res.data;
